@@ -25,8 +25,8 @@ func main() {
 			return
 		}
 
-		if location.VehicleID == ""{
-			fmt.Println("error: vehicled_id is required")
+		if err := location.Validate(); err != nil {
+			fmt.Printf("error: validation failed: %v\n", err)
 			return
 		}
 
