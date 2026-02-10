@@ -6,6 +6,7 @@ import (
 
 type Config struct {
 	DatabaseURL string
+	RabbitMQURL string
 }
 
 func Load() *Config {
@@ -13,7 +14,14 @@ func Load() *Config {
 	if dbURL == "" {
 		dbURL = "postgres://postgres:postgres@localhost:5432/armada_db?sslmode=disable"
 	}
+
+	rabbitURL := os.Getenv("RABBITMQ_URL")
+	if rabbitURL == "" {
+		rabbitURL = "amqp://guest:guest@localhost:5672/"
+	}
+
 	return &Config{
 		DatabaseURL: dbURL,
+		RabbitMQURL: rabbitURL,
 	}
 }
