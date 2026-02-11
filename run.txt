@@ -1,3 +1,0 @@
-cat migrations/000001_create_vehicle_locations.up.sql | sudo docker exec -i armada_postgres psql -U postgres -d armada_db
-
-sudo docker exec -it armada_postgres psql -U postgres -d armada_db -c "\dt"

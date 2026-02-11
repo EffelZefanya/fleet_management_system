@@ -68,7 +68,7 @@ cat migrations/000001_create_vehicle_locations.up.sql | sudo docker exec -i arma
 ### Run Docker Compose
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 This starts Postgres, RabbitMQ, Mosquitto, and all Go services (API, Subscriber, Worker, Simulator).
