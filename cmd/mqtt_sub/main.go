@@ -53,7 +53,7 @@ func main() {
 	mqttHandler := handler.NewMqttHandler(locationService)
 
 	opts := mqtt.NewClientOptions()
-	opts.AddBroker("tcp://localhost:1883")
+	opts.AddBroker(cfg.MQTTBrokerURL)
 	opts.SetClientID("armada_management_subscriber")
 
 	client := mqtt.NewClient(opts)

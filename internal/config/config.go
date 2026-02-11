@@ -8,6 +8,7 @@ import (
 type Config struct {
 	DatabaseURL string
 	RabbitMQURL string
+	MQTTBrokerURL string
 }
 
 func Load() *Config {
@@ -23,8 +24,15 @@ func Load() *Config {
 		rabbitURL = "amqp://guest:guest@localhost:5672/"
 	}
 
+	mqttURL := os.Getenv("MQTT_BROKER_URL")
+	if mqttURL == "" {
+		log.Println("ERROR: mqtt broker url isn't found, reverting to dev configuration")
+		mqttURL = "tcp://localhost:1883"
+	}
+
 	return &Config{
 		DatabaseURL: dbURL,
 		RabbitMQURL: rabbitURL,
+		MQTTBrokerURL: mqttURL,
 	}
 }

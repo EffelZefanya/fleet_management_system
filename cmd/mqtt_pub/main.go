@@ -1,6 +1,7 @@
 package main
 
 import (
+	"armada_management_system/internal/config"
 	"armada_management_system/internal/models"
 	"encoding/json"
 	"fmt"
@@ -42,8 +43,9 @@ func simulateVehicle(vehicleID string, baseLat, baseLong float64, client mqtt.Cl
 }
 
 func main() {
+	cfg := config.Load()
 	opts := mqtt.NewClientOptions()
-	opts.AddBroker("tcp://localhost:1883")
+	opts.AddBroker(cfg.MQTTBrokerURL)
 	opts.SetClientID("multi_vehicle_simulator")
 
 	client := mqtt.NewClient(opts)

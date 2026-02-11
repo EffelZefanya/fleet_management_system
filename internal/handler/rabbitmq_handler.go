@@ -42,15 +42,13 @@ func (h *GeofenceAlertHandler) worker(id int, msgs <-chan amqp.Delivery, wg *syn
 		
 		if err := json.Unmarshal(d.Body, &event); err != nil {
 			log.Printf("Worker %d ERROR: JSON decode failed: %s", id, err)
-			d.Nack(false, false) // Requeue: false (discard bad data)
+			d.Nack(false, false)
 			continue
 		}
 
-		// 2. Process (The slow part)
 		log.Printf("Worker %d processing vehicle: %s", id, event.VehicleID)
 		h.alertService.ProcessAlert(event)
 
-		// 3. Acknowledge
 		if err := d.Ack(false); err != nil {
 			log.Printf("Worker %d ERROR: Ack failed: %v", id, err)
 		}

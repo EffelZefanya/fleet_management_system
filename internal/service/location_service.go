@@ -28,6 +28,5 @@ func (s *LocationService) ProcessLocation(ctx context.Context, location models.V
 		return fmt.Errorf("failed to save location to DB: %w", err)
 	}
 
-	// We can decide if a geofence check failure should be a fatal error or just logged.
 	return s.geofence.CheckAndPublish(location)
 }
