@@ -2,12 +2,11 @@ package main
 
 import (
 	"armada_management_system/internal/config"
-	"armada_management_system/internal/models"
+	"armada_management_system/internal/handler"
 	"armada_management_system/internal/repository"
 	"armada_management_system/internal/service"
 	"context"
-	"encoding/json"
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -22,81 +21,53 @@ func main() {
 
 	dbpool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
-		panic(fmt.Sprintf("Unable to create connection pool: %v\n", err))
+		log.Fatalf("[MQTT Sub] Unable to create connection pool: %v", err)
 	}
 	defer dbpool.Close()
 
 	if err := dbpool.Ping(context.Background()); err != nil {
-		panic(fmt.Sprintf("Unable to ping database: %v\n", err))
+		log.Fatalf("[MQTT Sub] Unable to ping database: %v", err)
 	}
-	fmt.Println("Connected to PostgreSQL successfully.")
+	log.Println("[MQTT Sub] Connected to PostgreSQL successfully.")
 
 	repo := repository.NewVehicleRepository(dbpool)
 
 	rabbitConn, err := amqp.Dial(cfg.RabbitMQURL)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to connect to RabbitMQ: %v", err))
+		log.Fatalf("[MQTT Sub] Failed to connect to RabbitMQ: %v", err)
 	}
 	defer rabbitConn.Close()
 
 	rabbitCh, err := rabbitConn.Channel()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to open RabbitMQ channel: %v", err))
+		log.Fatalf("[MQTT Sub] Failed to open RabbitMQ channel: %v", err)
 	}
 	defer rabbitCh.Close()
 
 	geofenceService, err := service.NewGeofenceService(rabbitCh)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to initialize geofence service: %v", err))
+		log.Fatalf("[MQTT Sub] Failed to initialize geofence service: %v", err)
 	}
+
+	locationService := service.NewLocationService(repo, geofenceService)
+	mqttHandler := handler.NewMqttHandler(locationService)
 
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker("tcp://localhost:1883")
 	opts.SetClientID("armada_management_subscriber")
 
-	//TODO: Create Handler, Service, and Repository layer
-	messageHandler := func(client mqtt.Client, msg mqtt.Message) {
-		// TODO: Delete when refactoring or consider using proper log
-		fmt.Printf("DEBUG: Received message on topic: %s\n", msg.Topic())
-
-		var location models.VehicleLocation
-
-		err := json.Unmarshal(msg.Payload(), &location)
-		if err != nil {
-			fmt.Printf("error: received invalid JSON on topic %s: %v", msg.Topic(), err)
-			return
-		}
-
-		if err := location.Validate(); err != nil {
-			fmt.Printf("error: validation failed: %v\n", err)
-			return
-		}
-
-		if err := repo.SaveLocation(context.Background(), location); err != nil {
-			fmt.Printf("error: failed to save location to DB: %v\n", err)
-			return
-		}
-
-		fmt.Printf("[%s] Data saved to DB: lat %.4f, Long %.4f\n", location.VehicleID, location.Latitude, location.Longitude)
-
-		if err := geofenceService.CheckAndPublish(location); err != nil {
-			fmt.Printf("error: failed to process geofence: %v\n", err)
-		}
-	}
-
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
+		log.Fatalf("[MQTT Sub] MQTT connect error: %v", token.Error())
 	}
 	defer client.Disconnect(250)
 
 	topic := "/fleet/vehicle/+/location"
-	if token := client.Subscribe(topic, 1, messageHandler); token.Wait() && token.Error() != nil {
-		fmt.Printf("error: subscription failed %v\n", token.Error())
-		return
+	if token := client.Subscribe(topic, 1, mqttHandler.MessageHandler); token.Wait() && token.Error() != nil {
+		log.Fatalf("[MQTT Sub] MQTT subscription failed: %v", token.Error())
 	}
 
-	fmt.Printf("subscribed to %s. Waiting for data...\n", topic)
+	log.Printf("Subscribed to %s. Waiting for data...", topic)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)

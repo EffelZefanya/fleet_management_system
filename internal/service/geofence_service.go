@@ -40,6 +40,13 @@ func (s *GeofenceService) CheckAndPublish(loc models.VehicleLocation) error {
 			Timestamp: time.Now().Unix(),
 		}
 
+		if err := event.Validate(); err != nil {
+			return fmt.Errorf("validation failed: %w", err)
+		}
+		if err := event.Location.Validate(); err != nil {
+			return fmt.Errorf("validation failed: %w", err)
+		}
+
 		body, err := json.Marshal(event)
 		if err != nil {
 			return fmt.Errorf("failed to marshal event: %w", err)

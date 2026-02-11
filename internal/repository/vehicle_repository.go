@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -44,6 +45,9 @@ func (r *VehicleRepository) GetLastLocation(ctx context.Context, vehicleID strin
 
 	err := r.db.QueryRow(ctx, query, vehicleID).Scan(&loc.VehicleID, &loc.Latitude, &loc.Longitude, &ts)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, models.ErrNotFound
+		}
 		return nil, err
 	}
 	loc.Timestamp = ts.Unix()

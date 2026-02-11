@@ -4,6 +4,7 @@ import (
 	"armada_management_system/internal/config"
 	"armada_management_system/internal/handler"
 	"armada_management_system/internal/repository"
+	"armada_management_system/internal/service"
 	"context"
 	"fmt"
 	"log"
@@ -22,14 +23,14 @@ func main() {
 	defer dbpool.Close()
 
 	repo := repository.NewVehicleRepository(dbpool)
-	h := handler.NewVehicleHandler(repo)
+	vehicleService := service.NewVehicleService(repo)
+	h := handler.NewVehicleHandler(vehicleService)
 
 	r := gin.Default()
 
 	r.GET("/vehicles/:vehicle_id/location", h.GetLastLocation)
 	r.GET("/vehicles/:vehicle_id/history", h.GetHistory)
 
-	//TODO: Refactor so the handler will call service, instead of repository directly.
 	fmt.Println("Server running on port 8080")
 	if err := r.Run(":8080"); err != nil {
 		log.Fatalf("Failed to run server: %v", err)

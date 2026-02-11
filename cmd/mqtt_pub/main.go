@@ -4,40 +4,30 @@ import (
 	"armada_management_system/internal/models"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
+	"sync"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-func main(){
-	opts := mqtt.NewClientOptions()
-	opts.AddBroker("tcp://localhost:1883")
-	opts.SetClientID("vehicle_simulator_B1234XYZ")
+func simulateVehicle(vehicleID string, baseLat, baseLong float64, client mqtt.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
 
-	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil{
-		panic(token.Error())
-	}
-	defer client.Disconnect(250)
-
-	vehicleID := "B1234XYZ"
-	baseLat := -6.2088
-	baseLong := 106.8456
-
-	fmt.Printf("Starting simulation for vehicle: %s\n", vehicleID)
+	log.Printf("Starting simulation for vehicle: %s", vehicleID)
 
 	for {
 		data := models.VehicleLocation{
 			VehicleID: vehicleID,
-			Latitude: baseLat + (rand.Float64()-0.5)*0.002,
+			Latitude:  baseLat + (rand.Float64()-0.5)*0.002,
 			Longitude: baseLong + (rand.Float64()-0.5)*0.002,
 			Timestamp: time.Now().Unix(),
 		}
 
 		payload, err := json.Marshal(data)
-		if err != nil{
-			fmt.Printf("Error marshalling JSON: %v\n", err)
+		if err != nil {
+			log.Printf("[Publisher %s] ERROR: Error marshalling JSON: %v", vehicleID, err)
 			continue
 		}
 
@@ -45,8 +35,28 @@ func main(){
 		token := client.Publish(topic, 1, false, payload)
 		token.Wait()
 
-		fmt.Printf("Published to %s: %s\n", topic, string(payload))
+		log.Printf("Published from %s to %s: %s", vehicleID, topic, string(payload))
 
 		time.Sleep(2 * time.Second)
 	}
+}
+
+func main() {
+	opts := mqtt.NewClientOptions()
+	opts.AddBroker("tcp://localhost:1883")
+	opts.SetClientID("multi_vehicle_simulator")
+
+	client := mqtt.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		log.Fatalf("Failed to connect to MQTT: %v", token.Error())
+	}
+	defer client.Disconnect(250)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go simulateVehicle("B1234XYZ", -6.2088, 106.8456, client, &wg)
+	go simulateVehicle("B5678ABC", -6.2188, 106.8556, client, &wg)
+
+	wg.Wait()
 }
