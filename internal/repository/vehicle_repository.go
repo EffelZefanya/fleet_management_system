@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,6 +22,7 @@ func (r *VehicleRepository) SaveLocation(ctx context.Context, loc models.Vehicle
 	query := `
 		INSERT INTO vehicle_locations (vehicle_id, latitude, longitude, timestamp)
 		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (vehicle_id, timestamp) DO NOTHING
 	`
 	ts := time.Unix(loc.Timestamp, 0)
 
@@ -44,6 +46,9 @@ func (r *VehicleRepository) GetLastLocation(ctx context.Context, vehicleID strin
 
 	err := r.db.QueryRow(ctx, query, vehicleID).Scan(&loc.VehicleID, &loc.Latitude, &loc.Longitude, &ts)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, models.ErrNotFound
+		}
 		return nil, err
 	}
 	loc.Timestamp = ts.Unix()

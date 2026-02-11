@@ -1,0 +1,12 @@
+Explanation in README
+- 2 pub to simulate 2 vehicle at once
+- QoS 1 of MQTT to ensure data is sent but also light to be sent
+- Concurrency in RabbitMQ Worker
+- gatekeeping to ensure no duplicate data using SQL unique index
+
+Limitation:
+- Multiple target stations -> Spatial Index with R-Tree and Cheap Checking by if difference of lat of bus and lat of target more than 0.001, we skip it. Or using a query like: 
+`SELECT id, name 
+FROM bus_stops 
+WHERE ST_DWithin(geom, ST_MakePoint(lon, lat)::geography, 50);`
+- Shared Subscription

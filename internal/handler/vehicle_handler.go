@@ -1,31 +1,39 @@
 package handler
 
 import (
-	"armada_management_system/internal/repository"
+	"armada_management_system/internal/models"
+	"armada_management_system/internal/service"
+	"context"
+	"errors"
+	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 )
 
 type VehicleHandler struct {
-	repo *repository.VehicleRepository
+	service *service.VehicleService
 }
 
-func NewVehicleHandler(repo *repository.VehicleRepository) *VehicleHandler {
-	return &VehicleHandler{repo: repo}
+func NewVehicleHandler(service *service.VehicleService) *VehicleHandler {
+	return &VehicleHandler{service: service}
 }
 
 func (h *VehicleHandler) GetLastLocation(c *gin.Context) {
 	vehicleID := c.Param("vehicle_id")
 
-	loc, err := h.repo.GetLastLocation(c.Request.Context(), vehicleID)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	loc, err := h.service.GetLastLocation(ctx, vehicleID)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, models.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Vehicle location not found"})
 			return
 		}
+		log.Printf("ERROR: Failed to retrieve location for vehicle %s: %v", vehicleID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve location"})
 		return
 	}
@@ -55,8 +63,12 @@ func (h *VehicleHandler) GetHistory(c *gin.Context) {
 		return
 	}
 
-	history, err := h.repo.GetLocationHistory(c.Request.Context(), vehicleID, start, end)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	history, err := h.service.GetLocationHistory(ctx, vehicleID, start, end)
 	if err != nil {
+		log.Printf("ERROR: Failed to retrieve history for vehicle %s: %v", vehicleID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve history"})
 		return
 	}

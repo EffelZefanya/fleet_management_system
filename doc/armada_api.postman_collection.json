@@ -1,0 +1,66 @@
+{
+  "info": {
+    "name": "Armada Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Last Location",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/vehicles/:vehicle_id/location",
+          "host": ["{{base_url}}"],
+          "path": ["vehicles", ":vehicle_id", "location"],
+          "variable": [
+            {
+              "key": "vehicle_id",
+              "value": "B1234XYZ",
+              "description": "The ID of the vehicle (e.g., B1234XYZ)"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Location History",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/vehicles/:vehicle_id/history?start=1700000000&end=1800000000",
+          "host": ["{{base_url}}"],
+          "path": ["vehicles", ":vehicle_id", "history"],
+          "query": [
+            {
+              "key": "start",
+              "value": "1700000000",
+              "description": "Start timestamp (Unix epoch)"
+            },
+            {
+              "key": "end",
+              "value": "1800000000",
+              "description": "End timestamp (Unix epoch)"
+            }
+          ],
+          "variable": [
+            {
+              "key": "vehicle_id",
+              "value": "B1234XYZ"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ]
+}

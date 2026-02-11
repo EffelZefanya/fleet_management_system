@@ -1,3 +1,4 @@
 # Mosquitto persistence data
 mosquitto/data/
 *.db
+.env
