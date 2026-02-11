@@ -1,0 +1,65 @@
+graph LR
+    %% Definitions of External and Infrastructure components
+    subgraph External [External Sources]
+        Vehicle([Vehicle Simulator])
+        Client([Client / Frontend])
+    end
+
+    subgraph Infrastructure [Infrastructure]
+        MQTT(MQTT Broker)
+        Postgres[(PostgreSQL DB)]
+        RabbitMQ(RabbitMQ)
+    end
+
+    %% Service Definitions
+    subgraph MQTT_Sub [MQTT Subscriber Service]
+        direction TB
+        MqttHandler[MqttHandler]
+        LocService[LocationService]
+        Repo[VehicleRepository]
+        GeoPub[GeofenceService Publisher]
+        
+        MqttHandler --> LocService
+        LocService --> Repo
+        LocService --> GeoPub
+    end
+
+    subgraph Geo_Worker [Geofence Worker Service]
+        direction TB
+        GeoHandler[GeofenceAlertHandler]
+        AlertService[GeofenceAlertService]
+        
+        GeoHandler --> AlertService
+    end
+
+    subgraph API [Vehicle Tracker API]
+        direction TB
+        APIHandler[VehicleHandler]
+        APIService[VehicleService]
+        APIRepo[VehicleRepository]
+
+        APIHandler --> APIService
+        APIService --> APIRepo
+    end
+
+    %% Data Flow Interactions
+    Vehicle -- "Publishes Location" --> MQTT
+    MQTT -- "Subscribes" --> MqttHandler
+    
+    Repo -- "INSERT" --> Postgres
+    
+    GeoPub -- "Exchange: fleet.events" --> RabbitMQ
+    RabbitMQ -- "Queue: geofence_alerts" --> GeoHandler
+
+    Client -- "HTTP GET" --> APIHandler
+    APIRepo -- "SELECT" --> Postgres
+
+    %% Styling
+    style Vehicle fill:#f9f,stroke:#333,stroke-width:2px
+    style Client fill:#f9f,stroke:#333,stroke-width:2px
+    style MQTT fill:#dfd,stroke:#333,stroke-width:2px
+    style Postgres fill:#dfd,stroke:#333,stroke-width:2px
+    style RabbitMQ fill:#dfd,stroke:#333,stroke-width:2px
+    style MQTT_Sub fill:#f0f4ff,stroke:#0055ff
+    style Geo_Worker fill:#fff4e6,stroke:#d4a017
+    style API fill:#e6fffa,stroke:#009999

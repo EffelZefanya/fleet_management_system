@@ -22,6 +22,7 @@ func (r *VehicleRepository) SaveLocation(ctx context.Context, loc models.Vehicle
 	query := `
 		INSERT INTO vehicle_locations (vehicle_id, latitude, longitude, timestamp)
 		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (vehicle_id, timestamp) DO NOTHING
 	`
 	ts := time.Unix(loc.Timestamp, 0)
 

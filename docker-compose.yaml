@@ -37,6 +37,8 @@ services:
       dockerfile: Dockerfile.vehicle_tracker_api
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/armada_db?sslmode=disable
     depends_on:
@@ -47,6 +49,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.mqtt_sub
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/armada_db?sslmode=disable
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
@@ -61,6 +65,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.geofence_worker
+    env_file:
+      - .env
     environment:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
     depends_on:
@@ -71,6 +77,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.mqtt_pub
+    env_file:
+      - .env
     environment:
       - MQTT_BROKER_URL=tcp://mqtt:1883
     depends_on:

@@ -35,6 +35,10 @@ func simulateVehicle(vehicleID string, baseLat, baseLong float64, client mqtt.Cl
 		topic := fmt.Sprintf("/fleet/vehicle/%s/location", vehicleID)
 		token := client.Publish(topic, 1, false, payload)
 		token.Wait()
+		if token.Error() != nil {
+			log.Printf("[Publisher %s] ERROR: Failed to publish (No ACK): %v", vehicleID, token.Error())
+			continue
+		}
 
 		log.Printf("Published from %s to %s: %s", vehicleID, topic, string(payload))
 
@@ -46,6 +50,9 @@ func main() {
 	cfg := config.Load()
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(cfg.MQTTBrokerURL)
+	opts.SetAutoReconnect(true)
+    opts.SetConnectRetry(true)
+    opts.SetCleanSession(false)
 	opts.SetClientID("multi_vehicle_simulator")
 
 	client := mqtt.NewClient(opts)

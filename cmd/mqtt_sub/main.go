@@ -56,6 +56,10 @@ func main() {
 	opts.AddBroker(cfg.MQTTBrokerURL)
 	opts.SetClientID("armada_management_subscriber")
 
+	opts.SetCleanSession(false) 
+    opts.SetAutoReconnect(true)
+    opts.SetResumeSubs(true)
+
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		log.Fatalf("[MQTT Sub] MQTT connect error: %v", token.Error())

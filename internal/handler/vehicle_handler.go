@@ -3,10 +3,12 @@ package handler
 import (
 	"armada_management_system/internal/models"
 	"armada_management_system/internal/service"
+	"context"
 	"errors"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,7 +24,10 @@ func NewVehicleHandler(service *service.VehicleService) *VehicleHandler {
 func (h *VehicleHandler) GetLastLocation(c *gin.Context) {
 	vehicleID := c.Param("vehicle_id")
 
-	loc, err := h.service.GetLastLocation(c.Request.Context(), vehicleID)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	loc, err := h.service.GetLastLocation(ctx, vehicleID)
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Vehicle location not found"})
@@ -58,7 +63,10 @@ func (h *VehicleHandler) GetHistory(c *gin.Context) {
 		return
 	}
 
-	history, err := h.service.GetLocationHistory(c.Request.Context(), vehicleID, start, end)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	history, err := h.service.GetLocationHistory(ctx, vehicleID, start, end)
 	if err != nil {
 		log.Printf("ERROR: Failed to retrieve history for vehicle %s: %v", vehicleID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve history"})
